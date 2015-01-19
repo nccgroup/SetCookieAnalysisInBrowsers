@@ -1,0 +1,18 @@
+<html>
+<head>
+<!-- test case here - begin -->
+<!-- Using href in LINK tag rev=parent - GET -->
+<link rev="parent" href="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_36.html/)</b>">
+<!-- test case here - end -->
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body onload="confirmPagLoad()">
+
+
+</body>
+</html>

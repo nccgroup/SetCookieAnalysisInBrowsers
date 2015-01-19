@@ -1,0 +1,20 @@
+<html>
+<head>
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body onload="confirmPagLoad()">
+
+
+<!-- test case here - begin -->
+Using src in AUDIO tag - GET
+<audio src="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_12.html/)</b>" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+<!-- test case here - end -->
+</body>
+</html>

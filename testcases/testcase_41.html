@@ -1,0 +1,20 @@
+<html>
+<head>
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body onload="confirmPagLoad()">
+<!-- test case here - begin -->
+Using src in TRACK tag in VIDEO tag - GET
+<video width="320" height="240" controls>
+  <source src="test.mp4" type="video/mp4">
+  <source src="test.ogg" type="video/ogg">
+  <track src="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_41.html/)</b>&referrer=testcase_41.html" kind="subtitles" srclang="en" label="English">
+</video>
+<!-- test case here - end -->
+</body>
+</html>

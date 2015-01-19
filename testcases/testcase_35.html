@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body onload="confirmPagLoad()">
+<!-- test case here - begin -->
+Using icon in COMMAND tag in MENU tag - GET
+<menu>
+<command type="radio" label="Left" icon="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_35.html/)</b>&referrer=testcase_35.html" onclick="setAlign('left')">Left</command>
+</menu>
+<!-- test case here - end -->
+</body>
+</html>

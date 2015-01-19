@@ -1,0 +1,21 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">  
+<html>
+<!-- test case here - begin -->
+<!--Using profile in HEAD tag - GET -->
+<head profile="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_16.html/)</b>">
+	<meta name="author" content="irsdl" />
+    <meta name="copyright" content="&copy; 2014" />
+    <meta name="keywords" content="HTML,examples" />
+    <meta name="date" content="2014-09-09T11:20:37+00:00" />
+</head>
+<!-- test case here - end -->
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+<body onload="confirmPagLoad()">
+
+</body>
+</html>

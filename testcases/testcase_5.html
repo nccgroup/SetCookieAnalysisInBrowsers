@@ -1,0 +1,21 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body onload="confirmPagLoad()">
+
+
+<!-- test case here - begin -->
+<!--HTML4 doctype-->
+Using longdesc in IMG tag - GET
+<img longdesc="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_5.html/)</b>" />
+<!-- test case here - end -->
+
+</body>
+</html>

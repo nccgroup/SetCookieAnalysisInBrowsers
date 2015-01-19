@@ -1,0 +1,19 @@
+<html>
+<head>
+<!-- test case here - begin -->
+<!-- Using href in LINK tag for Favicon - GET -->
+<link rel="icon" 
+      type="image/png" 
+      href="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_24.html/)</b>">
+<script>
+<!-- test case here - end -->
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body onload="confirmPagLoad()">
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!-- This is not a test case page -->
+<!-- This is an init page -->
+<html>
+<head>
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.initPage_PostBack(1); // to inform a successful initialisation
+}
+</script>
+</head>
+<body>
+
+
+<!-- initialising - begin -->
+<pre>
+Clearing cookies by JavaScript:
+<iframe src="%%TARGET%%/clearcookies.html"></iframe>
+Clearing cookies by using a server side page:
+<iframe src="%%TARGET%%/%%COOKIEMANAGER%%?action=clearCookies" onload="confirmPagLoad()"></iframe>
+</pre>
+<!-- initialising - end -->
+
+</body>
+</html>

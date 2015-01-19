@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body onload="confirmPagLoad()">
+<!-- test case here - begin -->
+Using background in style in DIV tag - GET
+<div style="background: url('%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_39.html/)</b>');">
+<!-- test case here - end -->
+</div>
+</body>
+</html>

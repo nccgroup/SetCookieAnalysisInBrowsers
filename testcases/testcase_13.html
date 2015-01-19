@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<!-- test case here - begin -->
+Using src in FRAME tag in FRAMESET tag - GET
+<frameset cols="25%" onload="confirmPagLoad()">
+	<frame src="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_13.html/)</b>" >
+</frameset>
+<!-- test case here - end -->
+</html>

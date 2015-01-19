@@ -1,0 +1,19 @@
+<html>
+<head>
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body onload="confirmPagLoad()">
+
+
+<!-- test case here - begin -->
+Using SRC in IFRAME tag - GET
+<iframe src="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_3.html/)</b>"></iframe>
+<!-- test case here - end -->
+
+</body>
+</html>

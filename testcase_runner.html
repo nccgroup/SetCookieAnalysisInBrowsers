@@ -1,0 +1,644 @@
+<!-- https://github.com/nccgroup/SetCookieAnalysisInBrowsers -->
+<!-- Released under AGPL (see LICENSE for more information). -->
+<html>
+<head>
+	<script>
+		var version = 'v1.1';
+		var author = 'Soroush Dalili (@irsdl) from NCC Group';
+		var testcaseNumber = 60;
+		var testcases_dir = "./testcases/";
+		var target_url = "http://sdl.me/demo/cookie-test/victim_site/"; // This needs to point to the victim site that hosts the "cookiemanager.aspx" file
+		var testcases_prefix = "testcase_";
+		var initPage = testcases_prefix + "0.html";
+		var hasInitPage = true; // first test case is the initialiser if this is true - needed to clean the cookies 
+		var cookieManagerPage = 'cookiemanager.aspx'; // Local to the victim site - needs to be rewritten in PHP
+		var redirectionPage = 'redirect.php'; // Local to attacker.com - redirect.php for PHP servers, redirect.aspx for ASPX servers
+
+		var loaded_testcases = new Array(); // a 2D array to store a testcase name and its content
+		var intervalLoaded_testcases; // this is an internal variable for setInterval and clearInterval functions
+		var successful_testcases = new Array(); // an array that keeps the name of successful testcases
+		var found_testcases = new Array(); // an array that keeps the name of test cases which could  be loaded
+		var notfound_testcases = new Array(); // an array that keeps the name of test cases which could not be loaded
+		var current_successful_testcases_length = 0; // keeps the length of successful_testcases array
+		var intervalSuccessCounter; // this is an internal variable for setInterval and clearInterval functions
+		var maxIntervalSuccessCounter = 20; // How many times we want to check the counter after sending the requests
+		var currentIntervalSuccessCounter = 0; // Used to keep the number of the times that we run countSuccessful function (is reset sometimes)
+		var currentActualIntervalSuccessCounter = 0; // Used to keep the number of the times that we run countSuccessful function (is not reset at all)
+		var timeOut_checkCookiesAgain; // this is an internal variable for setTimeout and clearTimeout functions
+		var initPageValue; // to find the initialiser page if it is in use
+		var showsFailedTestCases = true; // button controller
+		var showsTestCasesContents = false; // button controller
+		var showsFrames = false; // button controller
+		var numberOfProvidedTestCases = 0; // This includes everything: successful, failed, not found items.
+		
+		// This function runs after this page is fully loaded
+		// If any JavaScript function is needed to run first, it needs to be added to this function.
+		function pageOnload(){
+			document.getElementById('browserName').innerHTML = navigator.sayswho;
+			loadTestcasesNames();
+			
+		};
+		
+		
+		// This function fills the test case textarea box with initial values
+		function loadTestcasesNames(){
+			for(i=0;i<=testcaseNumber;i++){
+					var testcaseName = testcases_prefix + i + ".html";
+					document.getElementById('loadedTestCases').value += testcaseName + "\r\n";
+			}
+			
+			// document.getElementById('hasInitTestcase').innerHTML = ((hasInitPage) ? "Yes!" : "No!");
+			document.getElementById('testcaseCounter').innerHTML = testcaseNumber;
+		}
+		
+		
+		// This function helps to load the testcases after the initial phase (clearing cookies in this case)
+		// It calls a function that sends request to the test case files to load their HTML contents.
+		function prepareTestcases(){
+			document.getElementById('progress').innerHTML = "Loading testcases...";
+			document.getElementById('loadedTestCases').readOnly = true; // We do not want the test cases' names to be edited in the middle of the test!
+			var testcasesNames = document.getElementById('loadedTestCases').value; // reading the test cases' names from the text area
+			testcasesNames = testcasesNames.split(/\r\n|\r|\n/g); // to split the textarea based on newlines to extract the test cases
+			if (testcasesNames.length === 1 && (testcasesNames[0] === "" || hasInitPage)){
+				document.getElementById('progress').innerHTML = "No test case was found!";
+				return ""; // Error! no item was found!
+			}
+			initPageValue = testcasesNames[0];
+			var validTestCaseCounter = ((hasInitPage) ? -1 : 0); // to count number of valid test cases
+			var alreadyLoaded = Array(); // to remove duplicates
+			document.getElementById('loadedTestCases').value = ""; // clean up the initial textarea
+			for(i=0;i<testcasesNames.length;i++){
+				if(testcasesNames[i] !== "" && alreadyLoaded.indexOf(testcasesNames[i]) < 0 ){
+					validTestCaseCounter++;
+					alreadyLoaded.push(testcasesNames[i]); // add test case name to detect duplicates
+					document.getElementById('loadedTestCases').value += testcasesNames[i] + "\r\n"; // clean up the initial textarea
+					createTestCaseElement(testcasesNames[i]); // Create placeholder for testcases
+					loadTestCases(testcases_dir + testcasesNames[i] + "?" + Math.random(),testcasesNames[i]);
+				}
+			}
+			
+			numberOfProvidedTestCases = validTestCaseCounter;
+			document.getElementById('testcaseCounter').innerHTML = numberOfProvidedTestCases; // show the number of test cases
+			
+			clearInterval(intervalLoaded_testcases);
+			
+			if (numberOfProvidedTestCases>0)
+				intervalLoaded_testcases = setInterval('checkTestCases()',1000);
+			else
+				document.getElementById('progress').innerHTML = "No valid test case was found!";
+		}
+		
+		// This function is used only when hasInitPage=true
+		// This needs to be done first to clean the environment sometimes
+		// Init page should call initPage_PostBack function to continue the testing
+		function runInitPage(){
+			document.getElementById('progress').innerHTML = "Initialising...";
+			var name = loaded_testcases[0][0];
+			var content = loaded_testcases[0][1];
+			var safename = loaded_testcases[0][2];
+			
+			if(content != '' && content != 'Not found!') {
+				// We have a valid test case!
+				// creating an IFrame tag
+				createIFrame(name);
+				// This needs to be compatible cross browsers!
+				// loading the test case content in the relevant IFrame tag
+				document.getElementById(safename + "_frame").contentWindow.document.write(content);
+				document.getElementById(safename + "_frame").contentWindow.document.close();
+				document.getElementById('progress').innerHTML = "Waiting for confirmation from the init page...";
+			}else{
+				document.getElementById('progress').innerHTML = "Error in init page!";
+			}
+		}
+		
+		// This function is called by the init page if there is any
+		function initPage_PostBack(intState){
+			if(intState===-1){
+				document.getElementById('progress').innerHTML = "Initialisation failed!";
+			}else{
+				document.getElementById('progress').innerHTML = "Initialisation was successful";
+				// it is time to run the test cases!
+				runTestcases();
+			}
+		}
+		
+		// This function create an iframe with the testcases content
+		// It also call a function to create a layout to show the results
+		function runTestcases(){
+			document.getElementById('progress').innerHTML = "Running the testcases...";
+			for(var i = 1; i < loaded_testcases.length; i++) {
+				var name = loaded_testcases[i][0];
+				var content = loaded_testcases[i][1];
+				var safename = loaded_testcases[i][2];
+				document.getElementById(safeName(name)).style.display = 'block';
+				
+				if(content != '' && content != 'Not found!') {
+					// We have a valid testcase!
+					// creating an IFrame tag
+					createIFrame(name);
+					// This needs to be compatible cross browsers!
+					// loading the testcase content in the relevant IFrame tag
+					document.getElementById(safename + "_frame").contentWindow.document.write(content);
+					document.getElementById(safename + "_frame").contentWindow.document.close();
+				}else{
+					// Test case is invalid or not available...
+					
+				}
+			}
+			document.getElementById('progress').innerHTML = "Done... results will come later...";
+			checkCookiesAgain();
+			timeOut_checkCookiesAgain = setTimeout('checkCookiesAgain()',2000);
+		}
+		
+		// This function creates a safe name that can be used as Name and Id 
+		function safeName(strName){
+			var result = "";
+			strName = "safe_" + strName.replace(/[^a-zA-Z0-9_\-\.]/g,"_")
+			return strName;
+		}
+		
+		// This function creates Iframe tags which will be used to load our testcases
+		function createIFrame(strName){
+			var ifrmName = safeName(strName) + "_frame";
+			if(!document.getElementById(ifrmName)){
+				
+				// Frame holder div
+				frameHolder = document.createElement("div");
+				var text = document.createTextNode(strName); // add name of test case
+				frameHolder.appendChild(text);
+
+				// Creating frame to load a test case inside it
+				ifrm = document.createElement("IFRAME");
+				ifrm.setAttribute("id", ifrmName);
+				ifrm.setAttribute("name", ifrmName);
+				//ifrm.style.visibility = 'hidden';
+				//ifrm.style.display = 'none'; reduce the number of test cases: testcase_15.html, testcase_39.html, testcase_42.html, testcase_49.html
+				
+				frameHolder.appendChild(ifrm); // Adding the frame to frame holder
+				
+				// Adding the frame to the page
+				document.getElementById('framekeeper').appendChild(frameHolder);
+			}
+		}
+		
+		// This function creates two Div elements to keep the testcase name and its content
+		function createTestCaseElement(strName){
+			strNameSafe = safeName(strName);
+			if(!document.getElementById(strNameSafe)){
+				// Testcase name
+				testCaseElm = document.createElement("div");
+				testCaseElm.setAttribute("id", strNameSafe);
+				testCaseElm.setAttribute("name", strNameSafe);
+				testCaseElm.addEventListener("click", showTestcaseContent, false);
+				testCaseElm.style.display = 'none';
+				testCaseElm.className = 'testcase';
+				
+				// Testcase status
+				testCaseElmStatus = document.createElement("span");
+				testCaseElmStatus.setAttribute("id", strNameSafe+"_status");
+				testCaseElmStatus.setAttribute("name", strNameSafe+"_status");
+				var text = document.createTextNode(strName + ": Fetching...");
+				testCaseElmStatus.appendChild(text);
+				testCaseElmStatus.display = 'none';
+				testCaseElm.appendChild(testCaseElmStatus);
+				
+				// Testcase content
+				testCaseElmDetails = document.createElement("div");
+				testCaseElmDetails.setAttribute("id", strNameSafe+"_details");
+				testCaseElmDetails.setAttribute("name", strNameSafe+"_details");
+				//testCaseElmDetails.style.borderStyle = 'dashed'
+				testCaseElmDetails.style.display = 'none';
+				testCaseElm.appendChild(testCaseElmDetails);
+				
+				document.getElementById('result').appendChild(testCaseElm);
+				
+				//document.getElementById('result').appendChild(testCaseElmDetails);
+			}
+		}
+		
+		// any additional rules in regards with manipulating the testcase contents will be added here
+		function modifyTestcaseContent(strContent,strTestcaseName){
+			var result = strContent;
+			result = result.replace(/%%CURRENTPAGE%%/g,strTestcaseName);
+			result = result.replace(/%%TESTCASEDIR%%/g,testcases_dir);
+			result = result.replace(/%%TARGET%%/g,target_url);
+			result = result.replace(/%%RANDOM%%/g,Math.random());
+			result = result.replace(/%%COOKIEMANAGER%%/g,cookieManagerPage);
+			result = result.replace(/%%REDIRECTPAGE%%/g,redirectionPage);
+
+			// result = result.replace(/referrer=[^"'&\s]+/g,''); // some of my test cases have this parameter in them
+			// The following can be updated based on the need
+			result = result.replace(/action=setCookieByReferrer[^"'\s]+/ig,'action=setCookieByReferrer&cookievalue=Anything-'+strTestcaseName+'&referrer='+strTestcaseName);
+			
+			return result;
+		}
+		
+		// filter test content to show only the relevant part
+		// this is used when a user wants to see a testcase content
+		function filterTestcaseContent(strContent){
+			var result = "";
+			if(strContent!==""){
+				try{
+					var myRegexp = /\<\!\-\- test case here \- begin \-\-\>([\s\S]+)\<\!\-\- test case here \- end \-\-\>/g;
+					var match = myRegexp.exec(strContent);
+					result = match[1];
+				}catch(err){
+					
+				}
+			}
+			return result;
+		}
+		
+		// This functions shows the testcase source (HTMLEncoded) in the page if user clicks on a testcase
+		function showTestcaseContent(e){
+			if(e.target.id==="") return false; // To not hide the code when user selects the code
+			var result = "";
+			var strName = this.id;
+			var strDetails = strName;
+			
+			if(strName.indexOf('_details', strName.length - '_details'.length) === -1){
+				strDetails += "_details";
+			}else{
+				strDetails = strName;
+			}
+			var objDetails = document.getElementById(strDetails);
+			
+			// Toggle hide/visible
+			if(objDetails.style.display==='none'){
+				objDetails.style.display='block';
+			}else{
+				objDetails.style.display='none';
+			}
+			
+			/*
+			Hide everything
+			var details = document.getElementsByClassName('details');
+			for(var i = 0; i < details.length; i++) { 
+			  details[i].style.display='none';
+			}
+			*/
+			
+			
+
+
+			
+		}
+		
+		
+		
+		// Testcases communicate with this function after the page load
+		// This function then check the cookies to see if the testcase was successful or not
+		function logSuccessfulLoad(testcase_name){
+			if(testcase_name===initPage){
+				// This is from the cookie cleaner page to make sure that there is no cookies
+				// Now it is time to start loading the testcases
+				prepare();
+			}else{
+				// A testcase was finished and we need to check the cookies now
+				cookieChecker(target_url + "/cookiemanager.aspx?action=showCookie&cookiename="+testcase_name,"GET",testcase_name);
+			}
+		}
+		
+		// It is a good idea to load the testcases by using a JavaScript function to load them in some iframe tags
+		// This way we can manipulate or read a testcase before running it
+		// This function sends a request to a testcase to store its content in loaded_testcases variable
+		function loadTestCases(strURL,strTestcaseName){
+			var xmlHttpReq = false;
+			// Add raw data to loaded_testcases 2D array that keeps the testcase name and its content
+			loaded_testcases.push([strTestcaseName,'loading...',safeName(strTestcaseName)]);
+			
+			// Mozilla/Safari
+			if (window.XMLHttpRequest) {
+				xmlHttpReq = new XMLHttpRequest();
+			}
+			// IE
+			else if (window.ActiveXObject) {
+				xmlHttpReq = new ActiveXObject("Microsoft.XMLHTTP");
+			}
+			
+			
+			// Firefox does not support Synchronous requests recently
+			xmlHttpReq.open("GET", strURL, true); // Asynchronous GET request 
+			
+			xmlHttpReq.withCredentials  = true; // Sends cookies
+			
+			xmlHttpReq.onreadystatechange = function() {
+				if (xmlHttpReq.readyState === 4 && xmlHttpReq.status===200) {
+					var output = xmlHttpReq.responseText;
+					// No clean way to search in 2D array in JavaScript
+					for(var i = 0; i < loaded_testcases.length; i++) {
+					   if(loaded_testcases[i][0] === strTestcaseName) {
+							output = modifyTestcaseContent(output,strTestcaseName);
+							loaded_testcases[i][1] = output;
+							found_testcases.push(strTestcaseName); // loaded test case (found)
+							var objDetails = document.getElementById(loaded_testcases[i][2] + "_details");
+							
+							
+							var text = document.createTextNode(filterTestcaseContent(loaded_testcases[i][1]));
+							objDetails.appendChild(text);
+							objDetails.className = 'brush: html; gutter: false; toolbar: false; auto-links: false; '; // needed for sysntax highlighter
+							SyntaxHighlighter.highlight();
+							
+							var objDetails = document.getElementById(loaded_testcases[i][2] + "_details"); // Syntax highlighter moves our object away!
+							
+							if(showsTestCasesContents){
+								objDetails.style.display = 'block';
+							}else{
+								objDetails.style.display = 'none';
+							}
+							
+							break;
+					   }
+					}
+				} else if (xmlHttpReq.readyState === 4 && xmlHttpReq.status===404) {
+					// Test case not found!
+					// No clean way to search in 2D array in JavaScript
+					for(var i = 0; i < loaded_testcases.length; i++) {
+					   if(loaded_testcases[i][0] === strTestcaseName) {
+							loaded_testcases[i][1] = 'Not found!';
+							notfound_testcases.push(strTestcaseName); // unavailable test case (not found)
+							document.getElementById('testcaseCounter').innerHTML = numberOfProvidedTestCases - notfound_testcases.length; // to update the number of test cases
+							
+							document.getElementById(loaded_testcases[i][2]+"_status").innerHTML = ""
+							var text = document.createTextNode(strTestcaseName + ": Not Found!");
+							document.getElementById(loaded_testcases[i][2]+"_status").appendChild(text);
+							document.getElementById(loaded_testcases[i][2]).className = 'notfound failed';
+							document.getElementById(loaded_testcases[i][2]).style.display='block';
+							
+							
+							var objDetails = document.getElementById(loaded_testcases[i][2] + "_details");
+															
+							var text = document.createTextNode(loaded_testcases[i][1]);
+							objDetails.appendChild(text);
+							objDetails.className = 'brush: html; gutter: false; toolbar: false; auto-links: false;'; // needed for sysntax highlighter
+							SyntaxHighlighter.highlight();
+							
+							var objDetails = document.getElementById(loaded_testcases[i][2] + "_details"); // Syntax highlighter moves our object away!
+							
+							if(showsTestCasesContents){
+								objDetails.style.display = 'block';
+							}else{
+								objDetails.style.display = 'none';
+							}
+							
+							break;
+					   }
+					}
+				}
+				
+				document.getElementById('progress').innerHTML = "Loading testcases... " + Math.round(((found_testcases.length+notfound_testcases.length)/loaded_testcases.length)*100) + "%";
+			}
+			xmlHttpReq.send();
+		}
+		
+		// This function checks to see if all the testcases have been loaded
+		function checkTestCases(){
+			var stillWaiting = false;
+			// No clean way to search in 2D array in JavaScript
+			for(var i = 0; i < loaded_testcases.length; i++) {
+				if(loaded_testcases[i][1] === 'loading...') {
+					// we still have at least 1 testcase that has not been fully loaded!
+					stillWaiting = true;
+					break;
+				}
+			}
+
+			if(!stillWaiting){
+				// loaded_testcases.sort(); to not destory the init page!
+				// clear the interval to stop calling this function
+				clearInterval(intervalLoaded_testcases);
+				if(hasInitPage){
+					// run the init page
+					runInitPage();
+				}else{
+					// running the testcases
+					runTestcases();
+				}
+			}
+		}
+		
+		// Checking too see if the cookies have been set
+		function cookieChecker(strURL,strReqType,strCookieName) {
+			var xmlHttpReq = false;
+			if (strReqType!="POST") strReqType = "GET";
+
+			// Mozilla/Safari
+			if (window.XMLHttpRequest) {
+				xmlHttpReq = new XMLHttpRequest();
+			}
+			// IE
+			else if (window.ActiveXObject) {
+				xmlHttpReq = new ActiveXObject("Microsoft.XMLHTTP");
+			}
+			
+			
+			xmlHttpReq.open(strReqType, strURL, true); // Asynchronous request 
+			//xmlHttpReq.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded'); // only useful for POST requests
+			
+			xmlHttpReq.withCredentials  = true; // Sends cookies
+			
+			xmlHttpReq.onreadystatechange = function() {
+				if (xmlHttpReq.readyState === 4 && xmlHttpReq.status===200) {
+					var output = xmlHttpReq.responseText;
+					var safename = safeName(strCookieName);
+					if(output!==""){
+						
+						if(successful_testcases.indexOf(strCookieName)===-1){
+							successful_testcases.push(strCookieName);
+						}
+						document.getElementById(safename+"_status").innerHTML = ""
+						var text = document.createTextNode(strCookieName + ": Successful!");
+						document.getElementById(safename+"_status").appendChild(text);
+						//document.getElementById(safeName(strCookieName)+"_status").innerHTML = strCookieName + ": <font color='green'><b>Successful!</b></font>"	
+						document.getElementById(safename).className = 'success';
+						document.getElementById(safename).style.display='block';
+						countSuccessful();
+					}else{
+						document.getElementById(safename+"_status").innerHTML = ""
+						var text = document.createTextNode(strCookieName + ": Failed!");
+						document.getElementById(safename+"_status").appendChild(text);
+						//document.getElementById(safeName(strCookieName)+"_status").innerHTML = strCookieName + ": Failed!"
+						document.getElementById(safename).className = 'failed';
+						if(!showsFailedTestCases){
+							document.getElementById(safename).style.display='none';
+						}
+					}
+				}
+			}
+			xmlHttpReq.send();
+		}
+	
+	
+		// Check the cookies again as they could be set with a delay...
+		function checkCookiesAgain(){
+			document.getElementById('progress').innerHTML = "Verifying...";
+			//document.getElementById('showHideFailedTestcases').value = "Show failed cases";
+			//showHideFailedTestcases();
+			
+			var testcasesNames = document.getElementById('loadedTestCases').value;
+			testcasesNames = testcasesNames.split(/\r\n|\r|\n/g); // to split the textarea based on newlines to extract the test cases
+			if (testcasesNames.length === 1 && (testcasesNames[0] === "" || hasInitPage)){
+				document.getElementById('progress').innerHTML = "No test case was found!";
+				return ""; // Error! no item was found!
+			}
+
+			for(i=0;i<testcasesNames.length;i++){
+				if(!(i===0 && hasInitPage) && testcasesNames[i] !== "" && successful_testcases.indexOf(testcasesNames[i])===-1 && notfound_testcases.indexOf(testcasesNames[i])===-1){
+					var safename = safeName(testcasesNames[i]);
+					document.getElementById(safename+"_status").innerHTML = "";
+					var text = document.createTextNode(testcasesNames[i] + ": Unknown!");
+					document.getElementById(safename+"_status").appendChild(text);
+					cookieChecker(target_url+"/cookiemanager.aspx?action=showCookie&cookiename="+testcasesNames[i],"GET",testcasesNames[i]);
+				}
+			}
+			
+			
+			document.getElementById('progress').innerHTML = "It is checking the cookies now...";
+			document.getElementById('checkCookiesAgain').disabled = false;
+			// to keep the results...
+			currentIntervalSuccessCounter = 0;
+			clearInterval(intervalSuccessCounter);
+				intervalSuccessCounter = setInterval('countSuccessful()',1000);
+		}
+		
+		// To show or hide the failed test cases
+		function showHideFailedTestcases(){
+			var failed = document.getElementsByClassName('failed');
+			var btnObj = document.getElementById('showHideFailedTestcases');
+			if(showsFailedTestCases){
+				for(var i = 0; i < failed.length; i++) { 
+				  failed[i].style.display='none';
+				}
+				btnObj.value = "Show failed test cases";
+				showsFailedTestCases = false;
+			}else{
+				for(var i = 0; i < failed.length; i++) { 
+				  failed[i].style.display='block';
+				}
+				btnObj.value = "Hide failed test cases";
+				showsFailedTestCases = true;
+			}
+		}
+		
+		// To show content of test cases
+		function showAllTheContents(){
+			if(showsTestCasesContents){
+				showsTestCasesContents = false;
+				document.getElementById('showAllTheContents').value = 'Show all the contents';
+				for(i=0;i<loaded_testcases.length;i++){
+					if(!(i===0 && hasInitPage) && loaded_testcases[i][0] !== ""){
+						document.getElementById(safeName(loaded_testcases[i][0])+"_details").style.display = "none";
+					}
+				}
+			}else{
+				showsTestCasesContents = true;
+				document.getElementById('showAllTheContents').value = 'Hide all the contents';
+				for(i=0;i<loaded_testcases.length;i++){
+					if(!(i===0 && hasInitPage) && loaded_testcases[i][0] !== ""){
+						document.getElementById(safeName(loaded_testcases[i][0])+"_details").style.display = "block";
+					}
+				}
+			}
+		}
+		
+		// To show the created frames for visual review
+		function showFrames(){
+			if(showsFrames){
+				showsFrames = false;
+				document.getElementById('framekeeper').style.visibility = 'hidden';
+				document.getElementById('showFrames').value = 'Show all the frames - for visual review';
+			}else{
+				showsFrames = true;
+				document.getElementById('framekeeper').style.visibility = 'visible';
+				document.getElementById('showFrames').value = 'Hide all the frames';
+			}
+			
+		}
+		
+		// Show the number of successful test cases
+		function countSuccessful(){
+			successful_testcases.sort();
+			
+			if(successful_testcases.length != current_successful_testcases_length){
+				clearTimeout(timeOut_checkCookiesAgain);
+				current_successful_testcases_length = successful_testcases.length
+				document.getElementById('successfulCounter').innerHTML = current_successful_testcases_length;
+				timeOut_checkCookiesAgain = setTimeout('checkCookiesAgain()',2000);
+			}
+			// we do not want to call this function any more
+			if(currentIntervalSuccessCounter>maxIntervalSuccessCounter || currentActualIntervalSuccessCounter > maxIntervalSuccessCounter * 2 ){
+				clearInterval(intervalSuccessCounter);
+				document.getElementById('progress').innerHTML = "Done. If the server is slow use the 'Check the cookies again' button.";
+			}
+			currentIntervalSuccessCounter++;
+			currentActualIntervalSuccessCounter++;
+		}
+		
+		
+		navigator.sayswho= (function(){
+			var ua= navigator.userAgent, tem, 
+			M= ua.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i) || [];
+			if(/trident/i.test(M[1])){
+				tem=  /\brv[ :]+(\d+)/g.exec(ua) || [];
+				return 'IE '+(tem[1] || '');
+			}
+			if(M[1]=== 'Chrome'){
+				tem= ua.match(/\bOPR\/(\d+)/)
+				if(tem!= null) return 'Opera '+tem[1];
+			}
+			M= M[2]? [M[1], M[2]]: [navigator.appName, navigator.appVersion, '-?'];
+			if((tem= ua.match(/version\/(\d+)/i))!= null) M.splice(1, 1, tem[1]);
+			return M.join(' ');
+		})();
+		
+	</script>
+	<!-- Syntax Highlighter { -->
+	<script type="text/javascript" src="./libs/syntaxhighlighter/scripts/shCore.js"></script>
+	<script type="text/javascript" src="./libs/syntaxhighlighter/scripts/shBrushXml.js"></script>
+	<link type="text/css" rel="stylesheet" href="./libs/syntaxhighlighter/styles/shCoreDefault.css"/>
+	<script type="text/javascript">
+		SyntaxHighlighter.config.tagName = 'div';
+		//SyntaxHighlighter.all(); // we don't need this
+	</script>
+	<style>
+		/* Not an stylist though! */
+		.testcase:nth-child(odd){
+			background:#ccc;
+		}
+		
+		.failed{
+			background:#FFFFCC;
+		}
+		.success{
+			background:#33CC33;
+		}
+		
+		.notfound {
+			background:#ccc;
+		}
+		
+	</style>
+	<!-- Syntax Highlighter } -->
+</head>
+<body onload="pageOnload();">
+	<input type=button onclick="this.disabled='true';prepareTestcases();" value="Start!" />
+	<input type=button onclick="location.href=document.location " value="End & Refresh!" />
+	<input id="checkCookiesAgain" type=button onclick="checkCookiesAgain()" value="Check the cookies again" disabled=disabled />
+	<input id="showHideFailedTestcases" type="button" onclick="showHideFailedTestcases()" value="Hide failed test cases" />
+	<input id="showAllTheContents" type="button" onclick="showAllTheContents()" value="Show all the contents" />
+	<input id="showFrames" type="button" onclick="showFrames()" value="Show all the frames - for visual review" />
+	<br/>Predefined Test Cases (first one will be used as an initialiser):<br/>
+	<textarea id="loadedTestCases" cols="30" rows="5"></textarea><br/>
+	<!--
+	Has initialiser? <span id="hasInitTestcase">Don't know yet!</span><br/>
+	-->
+	Number of test cases: <span id="testcaseCounter"> 0</span><br/>
+	Success: <span id="successfulCounter">0</span><br/>
+	Browser: <span id="browserName">?</span><br/><hr/>
+	<div id="progress">Waiting for the command...</div><br/>
+	<div id="result">Results:</div>
+	<hr/>
+	This space is used for the frames. <br/>
+	<div id="framekeeper" style="visibility: hidden;" ></div>
+</body>
+</html>

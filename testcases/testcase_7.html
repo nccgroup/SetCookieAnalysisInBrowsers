@@ -1,0 +1,21 @@
+<html>
+<head>
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body onload="confirmPagLoad()">
+
+
+<!-- test case here - begin -->
+Using cite in relevant tags - GET
+<blockquote cite="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_7.html/)</b>" >test</blockquote>
+<del cite="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_7.html/)</b>" >test</del>
+<ins cite="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_7.html/)</b>" >test</ins>
+<q cite="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_7.html/)</b>" >test</q>
+<!-- test case here - end -->
+</body>
+</html>

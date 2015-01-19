@@ -1,0 +1,26 @@
+<html>
+<head>
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body >
+<!-- test case here - begin -->
+Using action in FORM tag to target an internal IFRAME that points to a local redirect with 308 status - POST
+This should redirect the POST requests as they are to the target
+Status code 308 may not be supported by the webserver which serves the redirection file which can fail the test case
+<form id="myform" name="myform" action="./helpers/%%REDIRECTPAGE%%?rdircode=308&rdir=%%TARGET%%/%%COOKIEMANAGER%%%3Faction%3DsetCookieByReferrer%26cookievalue%3DblahFlashRedirectCookie%26referrer%3D%%CURRENTPAGE%%" method="POST" target="testframe">
+<input type=text name=test value=test />
+<input type=submit />
+</form>
+<iframe name="testframe" id="testframe" onload="confirmPagLoad()"></iframe>
+<script>
+myform.submit();
+</script>
+<!-- test case here - end -->
+
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body onload="confirmPagLoad()">
+<!-- test case here - begin -->
+Using src in INPUT tag with type=image - GET
+<input class="edit-button" type="image" src="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_33.html/)</b>" />
+<!-- test case here - end -->
+</body>
+</html>

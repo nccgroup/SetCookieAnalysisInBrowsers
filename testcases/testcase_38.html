@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body onload="confirmPagLoad()">
+<!-- test case here - begin -->
+Using data in OBJECT tag but with a HTML target that sets the cookies - GET
+<object data="%%TARGET%%/noframe/setcookie.html?%%RANDOM%%&action=setCookieByReferrer&cookievalue=<b>alert(/testcase_38.html/)</b>">
+</object>
+<!-- test case here - end -->
+
+</body>
+</html>

@@ -1,0 +1,18 @@
+<html>
+<head>
+<!-- test case here - begin -->
+<!-- Using content in META tag to refresh - GET -->
+<meta http-equiv="refresh" content="1; %%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_29.html/)</b>&referrer=testcase_29.html">
+<!-- test case here - end -->
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body onload="confirmPagLoad()">
+
+
+</body>
+</html>

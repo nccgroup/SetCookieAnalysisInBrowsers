@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<script>
+function confirmPagLoad(){
+	// send the current page name
+	window.top.logSuccessfulLoad('%%CURRENTPAGE%%');
+}
+</script>
+</head>
+<body onload="confirmPagLoad()">
+<!-- test case here - begin -->
+Using icon in MENUITEM tag in MENU tag- GET
+<div style="background:yellow;border:1px solid #cccccc;padding: 10px;" contextmenu="mymenu">
+<menu type="context" id="mymenu">
+  <menuitem label="Refresh" onclick="" icon="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_31.html/)</b>&referrer=testcase_31.html">
+  </menuitem>
+  <menu label="Share on...">
+    <menuitem label="Twitter" icon="%%TARGET%%/%%COOKIEMANAGER%%?action=setCookieByReferrer&cookievalue=<b>alert(/testcase_31.html/)</b>&referrer=testcase_31.html"
+    onclick="">
+    </menuitem>
+  </menu>
+</menu>
+<!-- test case here - end -->
+</body>
+</html>
