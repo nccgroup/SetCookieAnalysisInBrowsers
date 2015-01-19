@@ -25,8 +25,10 @@ As an example, this can be set-up on a local Windows server with IIS.
 When victim.com and attacker.com are two local DNS names:
 
  - The "testcase_runner.html" file has the following line:
+ 
     var target_url = "http://victim.com/cookies-test/victim_site/";
  - And the main file is accessible via the following URL:
+ 
     http://attacker.com/cookie-test/testcase_runner.html
 
 Example
