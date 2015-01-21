@@ -8,7 +8,7 @@ Description
 -----------
 For more information see the following blog post: 
 
-https://www.nccgroup.com/en/blog/2015/01/analysis-of-setting-cookies
+https://www.nccgroup.com/en/blog/2015/01/analysis-of-setting-cookies-for-third-party-websites-in-different-browsers/
 
 Usage
 -----
